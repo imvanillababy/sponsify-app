@@ -6,7 +6,7 @@ import './App.css';
 
 function App() {
   return (
-    <>
+  
       <div>
         <div className="App bg-[#e5ebff] ">
           <Router>
@@ -17,7 +17,7 @@ function App() {
           </Router>
         </div>
       </div>
-    </>
+    
   );
 }
 
