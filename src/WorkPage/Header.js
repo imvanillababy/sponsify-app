@@ -25,19 +25,19 @@ const Header = ({ ispending, setispending }) => {
             <div className="flex flex-col gap-7">
               <div className="flex flex-col gap-2 px-6 text-center w-10/12 mx-auto">
                 <h2 className=" font-extrabold leading-tight lg:text-4xl text-dark-grey-900">
-                  <span className="text-4xl">Sponsify</span>{" "}
-                  <span className="text-3xl">
-                    By Vanilla ! Ads pay , Transaction plays
+                  <span className="text-4xl">Sponsify</span>{" " }
+                  <span className="text-4xl">
+                  {" "}By Vanilla ! Ads pay , Transaction plays
                   </span>
                 </h2>
                 <p className="text-base font-medium leading-7 text-dark-grey-600">
-                  We hit a snag... maybe it's time to head back to our main
-                  page.
+                 Innovatively tackling  transaction fees while
+                  revolutionizing  advertising...
                 </p>
               </div>
               <div className="flex items-center justify-center">
                 <button onClick={handleOpenPopup} className="flex bg-[#7f98e9] items-center justify-center py-4 text-white px-7 rounded-2xl  focus:ring-4 focus:ring-purple-blue-100 transition duration-300">
-                 {loading===false?"Transfer Usdd":"Loading ad..."}
+                 {loading===false?"Transfer USDD":"Loading ad..."}
                 </button>
               </div>
             </div>

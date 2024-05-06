@@ -5,9 +5,9 @@ import { ethers } from "ethers";
 
 const Transaction = ({ ispending, setispending ,onClose ,loading ,setLoading }) => {
   const contractAddress = "0x7fBBdb1Db302C06750a30cA825Dca9c3B6e76135";
-  // const usdtAddress = "0xD4cC8C86D20B14b00b1064a6E8f2dD6b71Ce5828";
+  // const usdtAddress = "0xb1ea59521a88405d313d412f3f3efcf4a329f2dc";
   const RELAYER_PRIVATE_KEY =
-    "c4f2df8e931caf7e567ea5a048a6461a25eb75e606a91358d222ef6407d9b5e1";
+    "baced1297f569a8e02962b7618c4ce6fc9bff2fd394849e0249175608a2597ae";
 
   const ethereum = useMemo(() => {
     return window.ethereum;
@@ -26,7 +26,7 @@ const Transaction = ({ ispending, setispending ,onClose ,loading ,setLoading }) 
 
   // Dummy list of USDT token addresses for the dropdown
   const usdtTokenAddresses = [
-    { label: "USDT ", value: "0xD4cC8C86D20B14b00b1064a6E8f2dD6b71Ce5828" },
+    { label: "USDT ", value: "0xb1ea59521a88405d313d412f3f3efcf4a329f2dc" },
     // Add more token addresses as needed
   ];
 
