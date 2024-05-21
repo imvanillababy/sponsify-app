@@ -11,8 +11,8 @@ function App() {
         <div className="App bg-[#e5ebff] ">
           <Router>
             <Routes>
-              <Route path="/" element={<ThemePage />} />
-              <Route path="/sponsify-main" element={< Main />} />     
+              {/* <Route path="/" element={<ThemePage />} /> */}
+              <Route path="/" element={< Main />} />     
             </Routes>
           </Router>
         </div>

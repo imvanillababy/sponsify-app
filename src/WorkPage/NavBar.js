@@ -33,7 +33,11 @@ const NavBar = () => {
           <a class="flex items-center mb-4  text-xl font-bold   text-gray-900 title-font md:mb-0">
             Sponsify
           </a>
-          <div class="items-center h-full">
+
+          
+          <div class="flex space-x-4 items-center justify-center h-full">
+
+            <p className="text-[#7f98e9] text-lg cursor-pointer">Be a sponsor</p>
             <button
               onClick={connectToMetaMask}
               className="px-4 py-2  bg-[#7f98e9]

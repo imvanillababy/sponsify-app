@@ -12,10 +12,10 @@ const TrxList = () => {
       setTransactions(reversedTransactions);
     }
   }, []);
-  
+
   return (
-    <div className="flex font-myfont bg-[#e5ebff] justify-center i h-screen">
-      <div className="relative bg-[#e5ebff] max-w-[900px] h-[600px] w-full flex flex-col rounded-[10px] border-[1px] shadow-md">
+    <div className="flex font-myfont  justify-center i h-screen ">
+      <div className="relative bg-[#f8fbff]  max-w-[900px] h-[600px] w-full flex flex-col rounded-[10px] border-[1px] shadow-md">
         <div className="flex items-center justify-between rounded-t-2xl bg-white px-4 pb-4 pt-4 shadow-2xl">
           <button className="linear bg-[#f8fbff] rounded-[20px] px-4 py-2 text-base font-medium text-brand-500 transition duration-200 hover:bg-gray-100 active:bg-gray-200 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:active:bg-white/20">
             Transactions
@@ -45,27 +45,35 @@ const TrxList = () => {
                 </th>
               </tr>
             </thead>
-            <tbody>
-              {transactions.map((transaction, index) => (
-                <tr key={index} className="mt-2">
-                  <td className="py-3 text-sm">
-                    <p className="text-sm font-medium text-navy-700 dark:text-white">
-                      {transaction.recipient}
-                    </p>
-                  </td>
-                  <td className="py-3 text-sm">
-                    <p className="text-md font-medium text-gray-600 dark:text-white">
-                      {transaction.amount}
-                    </p>
-                  </td>
-                  <td className="py-3 text-sm">
-                    <Link to={`https://testscan.bt.io/#/transaction/${transaction.receipt}`} className="text-md font-medium text-[#7f98e9] ">
-                      Success
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+
+            {transactions.length > 0 ? (
+              transactions.map((transaction, index) => (
+                <tbody>
+                  <tr key={index} className="mt-2">
+                    <td className="py-3 text-sm">
+                      <p className="text-sm font-medium text-navy-700 dark:text-white">
+                        {transaction.recipient}
+                      </p>
+                    </td>
+                    <td className="py-3 text-sm">
+                      <p className="text-md font-medium text-gray-600 dark:text-white">
+                        {transaction.amount}
+                      </p>
+                    </td>
+                    <td className="py-3 text-sm">
+                      <Link
+                        to={`https://testscan.bt.io/#/transaction/${transaction.receipt}`}
+                        className="text-md font-medium text-[#7f98e9] "
+                      >
+                        Success
+                      </Link>
+                    </td>
+                  </tr>
+                </tbody>
+              ))
+            ) : (
+              <div className="mt-8 font-semibold text-gray-700 ">No transactions recorded</div>
+            )}
           </table>
         </div>
       </div>
