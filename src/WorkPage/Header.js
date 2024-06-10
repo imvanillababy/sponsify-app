@@ -37,7 +37,7 @@ const Header = ({ ispending, setispending }) => {
               </div>
               <div className="flex items-center justify-center">
                 <button onClick={handleOpenPopup} className="flex bg-[#7f98e9] items-center justify-center py-4 text-white px-7 rounded-2xl  focus:ring-4 focus:ring-purple-blue-100 transition duration-300">
-                 {loading===false?"Transfer USDD":"Loading ad..."}
+                 {loading===false?"Transfer Tokens":"Loading ad..."}
                 </button>
               </div>
             </div>

@@ -12,24 +12,34 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
   const ethereum = useMemo(() => window.ethereum, []);
 
   const [buttonState, setButtonState] = useState("Sign Transaction");
+  const [address, setAddress] = useState("");
+  const [recipient, setRecipient] = useState("");
+  const [amount, setAmount] = useState("");
+  const [tokenAddress, setTokenAddress] = useState("");
 
   useEffect(() => {
     if (!ethereum) {
       alert("Please initialize Ethereum");
     }
-  }, []);
+  }, [ethereum]);
 
-  const [recipient, setRecipient] = useState("");
-  const [amount, setAmount] = useState("");
-  const [tokenAddress, setTokenAddress] = useState("");
+  const walletAddress = async () => {
+    if (ethereum) {
+      const accounts = await ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      setAddress(accounts[0]);
+    }
+  };
 
-  // const hashMessage = (message) => {
-  //   return ethers.utils.id(message);
-  // };
+  useEffect(() => {
+    walletAddress();
+  }, [ethereum]);
 
   const TokenAbi = [
     "function approve(address _spender, uint256 _value) external returns (bool success)",
     "function allowance(address owner, address spender) external view returns (uint256)",
+    "function balanceOf(address owner) external view returns (uint256)",
   ];
 
   const relayTransaction = async (transaction) => {
@@ -38,7 +48,10 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
       const provider = new ethers.providers.JsonRpcProvider(providerUrl);
       const wallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider);
 
+      console.log("Relaying transaction:", transaction);
       const txResponse = await wallet.sendTransaction(transaction);
+      console.log("Transaction response:", txResponse);
+
       const receipt = txResponse.hash;
       handleSaveData(receipt);
 
@@ -56,39 +69,69 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
   };
 
   const getAllowance = async () => {
-    const provider = new ethers.providers.JsonRpcProvider(providerUrl);
-    const wallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider);
-    const tokenContract = new ethers.Contract(tokenAddress, TokenAbi, wallet);
+    try {
+      const tokenContract = new ethers.Contract(
+        tokenAddress,
+        TokenAbi,
+        new ethers.providers.Web3Provider(ethereum).getSigner()
+      );
+      const allowance = await tokenContract.allowance(address, contractAddress);
+      console.log("Allowance:", allowance.toString());
+      return allowance;
+    } catch (e) {
+      console.error("Error getting allowance:", e);
+      throw e;
+    }
+  };
 
-    const allowance = await tokenContract.allowance(
-      wallet.address,
-      contractAddress
-    );
-    return allowance;
+  const getBalance = async () => {
+    try {
+      const tokenContract = new ethers.Contract(
+        tokenAddress,
+        TokenAbi,
+        new ethers.providers.Web3Provider(ethereum).getSigner()
+      );
+      const balance = await tokenContract.balanceOf(address);
+      console.log("Balance:", balance.toString());
+      return balance;
+    } catch (e) {
+      console.error("Error getting balance:", e);
+      throw e;
+    }
   };
 
   const approveTokenByRelayer = async () => {
+    setButtonState("Checking for approval...");
+
     const provider = new ethers.providers.JsonRpcProvider(providerUrl);
     const wallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider);
     const tokenContract = new ethers.Contract(tokenAddress, TokenAbi, wallet);
 
-    const amountInWei = ethers.utils.parseUnits(amount, 18); // Adjust decimals if needed
-    const allowance = await getAllowance();
+    const amountInWei = ethers.utils.parseUnits(amount, 18);
+    const balance = await getBalance();
 
+    if (balance.lt(amountInWei)) {
+      setButtonState("Sign Transaction");
+      alert("Insufficient balance");
+      onClose();
+      return;
+    }
+
+    const allowance = await getAllowance();
     if (allowance.lt(amountInWei)) {
+      console.log("Approving tokens...");
       const tx = await tokenContract.approve(contractAddress, amountInWei);
       await tx.wait();
       console.log("Token approved by relayer:", tx);
     } else {
       console.log("Token already approved with sufficient allowance");
     }
+
+    signAndRelayTransferUSDT();
   };
 
   const signAndRelayTransferUSDT = async () => {
     try {
-      setButtonState("Checking for approval..");
-      await approveTokenByRelayer();
-
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       const contract = new ethers.Contract(contractAddress, Abi.abi, signer);
@@ -96,15 +139,15 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
       const data = contract.interface.encodeFunctionData("transferUSDT", [
         tokenAddress,
         recipient,
-        amount,
+        ethers.utils.parseUnits(amount, 18),
       ]);
 
-      console.log("data", data);
+      console.log("Data to relay:", data);
       const transaction = { to: contractAddress, data };
 
-      onClose();
+      setButtonState("Signing & Relaying Transaction...");
 
-      setButtonState("Sign Transaction");
+      onClose()
 
       await relayTransaction(transaction);
     } catch (error) {
@@ -150,7 +193,6 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
             placeholder="Enter token amount"
           />
         </div>
-
         <div className="mb-6">
           <label htmlFor="tokenAddress" className="font-semibold mb-4">
             Token Address
@@ -164,10 +206,9 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
             placeholder="Enter token address"
           />
         </div>
-
         <div className="space-x-4">
           <button
-            onClick={signAndRelayTransferUSDT}
+            onClick={approveTokenByRelayer}
             className="mt-2 text-white bg-[#7f98e9] font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
           >
             {buttonState}
