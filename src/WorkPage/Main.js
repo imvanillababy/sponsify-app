@@ -10,8 +10,7 @@ const Main = () => {
   return (
     <div className="bg-[#e5ebff]">
       <Header ispending={ispending} setispending={setispending} />
-      <Package ispending={ispending} setispending={setispending} />
-    
+      <Package ispending={ispending} setispending={setispending} />    
     </div>
   );
 };
