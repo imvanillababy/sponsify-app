@@ -62,7 +62,7 @@ const TrxList = () => {
                     </td>
                     <td className="py-3 text-sm">
                       <Link
-                        to={`https://testscan.bt.io/#/transaction/${transaction.receipt}`}
+                        to={`https://bttcscan.com/tx/${transaction.receipt}`}
                         className="text-md font-medium text-[#7f98e9] "
                       >
                         Success
