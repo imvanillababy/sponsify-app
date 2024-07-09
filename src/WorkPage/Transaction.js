@@ -1,15 +1,33 @@
 import React, { useMemo, useEffect, useState } from "react";
 import { ethers } from "ethers";
-import { toast } from "react-toastify"; // Import toast
+import { toast } from "react-toastify";
+
+const Transaction = ({ setispending, onClose, setLoading ,getProviderUrl }) => {
+
+
+  const relayerPrivateKey = process.env.REACT_APP_API_URL;
+
+
+    //0x681aF9B69b8912CDA69adC59F167910536688BC8
+  const [providerUrl, setProviderUrl] = useState("https://rpc.frax.com");
 
 
 
+  // Fetch provider URL when the component mounts
+  useEffect(() => {
 
+    
+    const fetchProviderUrl = async () => {
+      const url = await getProviderUrl();
+      if (url) {
+        setProviderUrl(url);
+      }
+    };
 
+    fetchProviderUrl();
+  }, []);
 
-const Transaction = ({ setispending, onClose, setLoading }) => {
-  const relayerPrivateKey = process.env.REACT_APP_PRIVATE_KEY ;
-  const providerUrl = "https://rpc.bittorrentchain.io";
+  console.log("Provider URL:", providerUrl);
 
   const ethereum = useMemo(() => window.ethereum, []);
   const [buttonState, setButtonState] = useState("Sign Transaction");
@@ -19,8 +37,21 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
   const [tokenAddress, setTokenAddress] = useState("");
   const [relayerWallet, setRelayerWallet] = useState(null);
 
-  const provider = useMemo(() => new ethers.providers.JsonRpcProvider(providerUrl), []);
-  const signer = useMemo(() => (address ? provider.getSigner(address) : null), [address, provider]);
+  const provider = useMemo(() => {
+    if (providerUrl !== "") {
+      return new ethers.providers.JsonRpcProvider(providerUrl);
+    } else {
+      return null;
+    }
+  }, [providerUrl]);
+
+  const signer = useMemo(() => {
+    if (address && provider) {
+      return provider.getSigner(address);
+    } else {
+      return null;
+    }
+  }, [address, provider]);
 
   useEffect(() => {
     const initialize = async () => {
@@ -29,10 +60,15 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
         return;
       }
 
-      const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+      const accounts = await ethereum.request({
+        method: "eth_requestAccounts",
+      });
       setAddress(accounts[0]);
 
-      const relayerWalletInstance = new ethers.Wallet(relayerPrivateKey, provider);
+      const relayerWalletInstance = new ethers.Wallet(
+        relayerPrivateKey,
+        provider
+      );
       setRelayerWallet(relayerWalletInstance);
     };
 
@@ -78,7 +114,10 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
   const getAllowance = async () => {
     try {
       const tokenContract = new ethers.Contract(tokenAddress, TokenAbi, signer);
-      const allowance = await tokenContract.allowance(address, relayerWallet.address);
+      const allowance = await tokenContract.allowance(
+        address,
+        relayerWallet.address
+      );
       console.log("Allowance:", allowance.toString());
       return allowance;
     } catch (error) {
@@ -92,7 +131,7 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
       const tokenContract = new ethers.Contract(tokenAddress, TokenAbi, signer);
       const balance = await tokenContract.balanceOf(address);
       console.log("Balance:", balance.toString());
-      return balance;
+      return Number(balance);
     } catch (error) {
       console.error("Error getting balance:", error);
       throw error;
@@ -112,8 +151,10 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
       const tokenContract = new ethers.Contract(tokenAddress, TokenAbi, signer);
       const amountInWei = ethers.utils.parseUnits(amount, 18);
       const balance = await getBalance();
+      console.log("Balance:", balance);
+      console.log("Amount:", Number(amountInWei));
 
-      if (balance.lt(amountInWei)) {
+      if (balance < Number(amountInWei)) {
         toast.info("Insufficient balance");
         setButtonState("Sign Transaction");
         onClose();
@@ -124,13 +165,15 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
 
       if (allowance.lt(amountInWei)) {
         setButtonState("Approving token...");
-        const approveData = tokenContract.interface.encodeFunctionData("approve", [
-          relayerWallet.address,
-          amountInWei,
-        ]);
+        const approveData = tokenContract.interface.encodeFunctionData(
+          "approve",
+          [relayerWallet.address, amountInWei]
+        );
 
         const approveTransaction = { to: tokenAddress, data: approveData };
-        const signedTransaction = await relayerWallet.sendTransaction(approveTransaction);
+        const signedTransaction = await relayerWallet.sendTransaction(
+          approveTransaction
+        );
         console.log("Approve transaction sent:", signedTransaction);
       } else {
         console.log("Token already approved with sufficient allowance");
@@ -146,20 +189,30 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
 
   const signAndRelayTransferUSDT = async () => {
     try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      await window.ethereum.enable(); // Request user's permission to connect to MetaMask
+
+      const signer = provider.getSigner();
       const contract = new ethers.Contract(tokenAddress, TokenAbi, signer);
+
       const data = contract.interface.encodeFunctionData("transfer", [
         recipient,
         ethers.utils.parseUnits(amount, 18),
       ]);
 
       console.log("Data to relay:", data);
+
+      // Sign the message using MetaMask
+      const signedMessage = await signer.signMessage(data);
+      console.log("Signed message:", signedMessage);
+
       const transaction = { to: tokenAddress, data };
 
       setButtonState("Signing & Relaying Transaction...");
 
       onClose();
 
-      await relayTransaction(transaction);
+      await relayTransaction(transaction); // Assuming this function handles transaction relay
     } catch (error) {
       console.error("Error signing and relaying transaction:", error);
       alert("Transaction failed. Please try again.");
@@ -181,67 +234,75 @@ const Transaction = ({ setispending, onClose, setLoading }) => {
   }, []);
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
-    <div className={`max-w-xl text-[#131f38] font-myfont mx-auto bg-[#f8fbff] rounded-lg p-12 shadow-lg transform transition-transform duration-300 ${isOpen ? 'scale-100' : 'scale-95'}`}>
-      <h2 className="text-2xl font-bold mb-6">Sign Transaction</h2>
-      <div className="mb-6">
-        <label htmlFor="recipient" className="font-semibold mb-2">
-          Recipient Address
-        </label>
-        <input
-          type="text"
-          id="recipient"
-          value={recipient}
-          onChange={(e) => setRecipient(e.target.value)}
-          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:border-blue-400"
-          placeholder="Enter recipient address"
-        />
-      </div>
-      <div className="mb-6">
-        <label htmlFor="amount" className="font-semibold mb-4">
-          Token Amount
-        </label>
-        <input
-          type="text"
-          id="amount"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:border-blue-400"
-          placeholder="Enter token amount"
-        />
-      </div>
-      <div className="mb-6">
-        <label htmlFor="tokenAddress" className="font-semibold mb-4">
-          Token Address
-        </label>
-        <input
-          type="text"
-          id="tokenAddress"
-          value={tokenAddress}
-          onChange={(e) => setTokenAddress(e.target.value)}
-          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:border-blue-400"
-          placeholder="Enter token address"
-        />
-      </div>
-      <div className="space-x-4">
-        <button
-          onClick={approveTokenByRelayer}
-          className="mt-2 text-white bg-[#7f98e9] font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-        >
-          {buttonState}
-        </button>
-        <button
-          onClick={() => {
-            setIsOpen(false);
-            setTimeout(onClose, 300); // Give time for transition to complete before closing
-          }}
-          className="mt-4 text-gray-600 hover:text-gray-800 font-semibold focus:outline-none"
-        >
-          Cancel
-        </button>
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity duration-300 ${
+        isOpen ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      <div
+        className={`max-w-xl text-[#131f38] font-myfont mx-auto bg-[#f8fbff] rounded-lg p-12 shadow-lg transform transition-transform duration-300 ${
+          isOpen ? "scale-100" : "scale-95"
+        }`}
+      >
+        <h2 className="text-2xl font-bold mb-6">Sign Transaction</h2>
+        <div className="mb-6">
+          <label htmlFor="recipient" className="font-semibold mb-2">
+            Recipient Address
+          </label>
+          <input
+            type="text"
+            id="recipient"
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:border-blue-400"
+            placeholder="Enter recipient address"
+          />
+        </div>
+        <div className="mb-6">
+          <label htmlFor="amount" className="font-semibold mb-4">
+            Token Amount
+          </label>
+          <input
+            type="text"
+            id="amount"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:border-blue-400"
+            placeholder="Enter token amount"
+          />
+        </div>
+        <div className="mb-6">
+          <label htmlFor="tokenAddress" className="font-semibold mb-4">
+            Token Address
+          </label>
+          <input
+            type="text"
+            id="tokenAddress"
+            value={tokenAddress}
+            onChange={(e) => setTokenAddress(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:border-blue-400"
+            placeholder="Enter token address"
+          />
+        </div>
+        <div className="space-x-4">
+          <button
+            onClick={approveTokenByRelayer}
+            className="mt-2 text-white bg-[#7f98e9] font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            {buttonState}
+          </button>
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              setTimeout(onClose, 300); // Give time for transition to complete before closing
+            }}
+            className="mt-4 text-gray-600 hover:text-gray-800 font-semibold focus:outline-none"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
-  </div>
   );
 };
 
